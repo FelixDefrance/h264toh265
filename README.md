@@ -5,7 +5,14 @@ H265 is also known as x265 or HEVC.
 
 See https://x265.readthedocs.io or 'man ffmpeg-codecs'
 
-FFmpeg options makes converted videos output in h265@10bits.
+FFmpeg options makes converted videos output in h265@10bits with no quality loss !
+
+As you can see, MVI_7556.MP4 is encoded in h264 and the same file after processing MVI_7556_x265.MP4:
+
+```
+-rw-r--r--  1 fdef fdef 1,1G 22 déc.  13:05 MVI_7556.MP4
+-rw-r--r--  1 fdef fdef 156M  1 janv. 16:51 MVI_7556_x265.MP4
+```
 
 ## Vars
 
