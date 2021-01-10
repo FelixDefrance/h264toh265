@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# ---- vars
+path="$(realpath $1)"
+LOGDIR=/tmp
+LOGFILE_ERR=$LOGDIR/$(basename $0)-$(date +%F-%R).error.log
+LOGFILE=$LOGDIR/$(basename $0)-$(date +%F-%R).log
+LISTFILE=$LOGDIR/$(basename $0)-converted-files-$(date +%F-%R).list
+OVERRIDE_SRCFILE=0
+
+# ---- functions
+
+displaymessage() {
+        echo "$*"
+}
+
+displaytitle() {
+        displaymessage "------------------------------------------------------------------------------"
+        displaymessage "$*"
+        displaymessage "------------------------------------------------------------------------------"
+}
+
+exec_func() {
+        local message=$1
+        shift
+        echo ">>> $*" >> $LOGFILE 2>&1
+        "$*" >> $LOGFILE 2>&1
+        local ret=$?
+        if [ $ret -ne 0 ]; then
+                echo -e "[ERROR] $message" >> $LOGFILE 2>&1
+        else
+                echo -e "[OK] $message" >> $LOGFILE 2>&1
+        fi
+        return $ret
+}
+
+usage() {
+echo "Tool based on ffmpeg to convert videos in H264 format to H265.
+H265 is also known as x265 or HEVC. 
+See https://x265.readthedocs.io or 'man ffmpeg-codecs'
+
+FFmpeg options set output video in h265 in 10 bits
+
+# ------------------
+Usage: $(basename $0) ./directory_to_convert
+       See progress with tail -f LOGFILE
+# ------------------
+"
+exit 1
+}
+
+do_convert() {
+for f in $(find "$path" -type f -iname "*.mp4"); do 
+    cd $(dirname $f)
+    srcfile=$(basename $f)
+    srcformat="$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 $srcfile)"
+    if [ $srcformat = h264 ]; then
+        dstfile="x265_$(basename ${f})"
+        echo
+        echo "Converting $srcfile to $dstfile" 
+        echo "------------------------------------------------------------------------------"
+        ffmpeg -i $srcfile -loglevel repeat+level+info -tag:v hvc1 -c:v libx265 -c:a copy -preset fast -crf 23 -profile:v main10 $dstfile
+        if [ $? = 0 ]; then 
+            echo "$f" >> $LISTFILE
+            [ $OVERRIDE_SRCFILE = 1 ] && mv $dstfile $srcfile
+        else
+            echo "$dstfile" >> $LOGFILE_ERR
+        fi
+    else
+        echo "[WARNING] $dstfile video codec isn't h264" >> $LOGFILE
+    fi
+    cd $path
+done
+}
+
+# ---- Main
+
+[[ ! $# = 1 || ! -d "$path" ]] && usage
+
+TIME=`date +"%d/%m/%Y %H:%M"`
+displaytitle "[ $TIME ] Start converting your videos at: $path" >> $LOGFILE 2>&1
+exec_func "All file are processed !" do_convert
+[ -a $LOGFILE_ERR ] && echo "[WARNING] Some files are not converted! See: $LOGFILE_ERR" >> $LOGFILE
+
+TIME=`date +"%d/%m/%Y %H:%M"`
+displaytitle "[ $TIME ] Finish." >>  $LOGFILE 2>&1
