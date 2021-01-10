@@ -28,5 +28,5 @@ OVERRIDE_SRCFILE    : Replace source file by the converted file (default=false)
 
 ```
 Usage: h264toh265 ./directory_to_convert
-       See progress with tail -f ~/h264toh265.bash-2021-01-06-18:46.log
+       See progress with tail -f $LOGDIR/h264toh265-2021-01-06-18:46.log
 ```
